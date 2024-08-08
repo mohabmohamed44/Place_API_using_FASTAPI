@@ -1,0 +1,11 @@
+# Ignore environment variables
+.env
+
+# Ignore secret file
+secret.py
+
+
+# Directories
+.idea
+__pycache__
+
