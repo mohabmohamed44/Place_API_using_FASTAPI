@@ -1,4 +1,4 @@
-# Cafe API
+# PLACE API (CAFE or WORKSPACE)
 
 ## Description
 The Cafe API is an API for managing places, users, and reviews. It allows users to create accounts, login, create and manage places, and leave reviews for places.
