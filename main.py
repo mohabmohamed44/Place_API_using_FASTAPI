@@ -14,17 +14,20 @@ from dotenv import load_dotenv
 import os
 from contextlib import asynccontextmanager
 
+# Load environment variables
+load_dotenv()
+
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-load_dotenv()
+
 # Constants for JWT
-SECRET_KEY = load_dotenv('SECRET_KEY')
+SECRET_KEY = os.getenv('SECRET_KEY')
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # SqlAlchemy Setup
-SQLALCHEMY_DATABASE_URL = 'sqlite+aiosqlite:///D:/PycharmProjects/fastApiProject3/database.db'
+SQLALCHEMY_DATABASE_URL = os.getenv('DATABASE_URL')
 engine = create_async_engine(SQLALCHEMY_DATABASE_URL, echo=True)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
@@ -390,4 +393,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run(app, host="127.0.0.1", port=8080, debug=True)
