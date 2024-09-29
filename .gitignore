@@ -4,6 +4,8 @@
 # Ignore secret file
 secret.py
 
+# Ignore Database file
+database.db
 
 # Directories
 .idea
