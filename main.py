@@ -14,20 +14,23 @@ from dotenv import load_dotenv
 import os
 from contextlib import asynccontextmanager
 
-# Load environment variables
-load_dotenv()
-
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Load environment variables
+load_dotenv()
+
 # Constants for JWT
 SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("No SECRET_KEY set for JWT")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # SqlAlchemy Setup
-SQLALCHEMY_DATABASE_URL = os.getenv('DATABASE_URL')
+SQLALCHEMY_DATABASE_URL = 'sqlite+aiosqlite:///./database.db'
 engine = create_async_engine(SQLALCHEMY_DATABASE_URL, echo=True)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
@@ -151,17 +154,18 @@ async def authenticate_user(db: AsyncSession, username: str, password: str):
         if not user:
             logger.warning(f"User not found: {username}")
             return False
+        logger.info(f"User found: {username}")
         if not verify_password(password, user.hashed_password):
             logger.warning(f"Incorrect password for user: {username}")
             return False
+        logger.info(f"Password verified for user: {username}")
         return user
     except Exception as e:
-        logger.error(f"Error in authenticate_user: {str(e)}")
+        logger.error(f"Error in authenticate_user: {str(e)}", exc_info=True)
         return False
 
 async def init_db():
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
 @asynccontextmanager
@@ -213,9 +217,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             data={"sub": user.username}, expires_delta=access_token_expires
         )
         return {"access_token": access_token, "token_type": "bearer"}
+    except HTTPException as he:
+        # Re-raise HTTP exceptions without wrapping them
+        logger.error(f"Authentication failed: {he.detail}")
+        raise he
     except Exception as e:
-        logger.error(f"Error in login_for_access_token: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+        # Log the full error for debugging, but don't expose details to the client
+        logger.error(f"Unexpected error in login_for_access_token: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -384,13 +393,13 @@ async def get_place_reviews(
         reviews = result.scalars().all()
         return reviews
     except Exception as e:
-        logger.error(f"Error getting place reviews: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+        logger.error (f"Error getting place reviews: {str (e)}")
+        raise HTTPException (status_code=500, detail=f"Internal Server Error: {str (e)}")
 
-@app.get('/')
+@app.get ('/')
 async def root():
     return {'message': 'Hello World!'}
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8080)
+    uvicorn.run (app, host="127.0.0.1", port=8000, reload=True)
